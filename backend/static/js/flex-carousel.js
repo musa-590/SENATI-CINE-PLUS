@@ -519,9 +519,7 @@ export function initFlexCarousel(canvasOrContainer, items = [], onSelect = null,
     };
 
     const image = new Image();
-    if (item.src && item.src.startsWith('http') && !item.src.startsWith(window.location.origin)) {
-      image.crossOrigin = 'anonymous';
-    }
+    image.crossOrigin = 'anonymous';
     image.decoding = 'async';
 
     image.onload = () => {

@@ -264,7 +264,9 @@ def stream_movie(movie_id: int):
     if storage.is_s3_enabled and movie.video_file:
         s3_url = storage.get_stream_url(movie.video_file)
         if s3_url:
-            return redirect(s3_url, code=302)
+            resp = redirect(s3_url, code=302)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
 
     path = resolve_upload(current_app.config["UPLOAD_FOLDER"], movie.video_file)
     if not path or not path.is_file():
@@ -288,7 +290,9 @@ def poster_movie(movie_id: int):
     if storage.is_s3_enabled and movie.poster_file:
         s3_url = storage.get_poster_url(movie.poster_file, thumb=use_thumb)
         if s3_url:
-            return redirect(s3_url, code=302)
+            resp = redirect(s3_url, code=302)
+            resp.headers["Access-Control-Allow-Origin"] = "*"
+            return resp
 
     if movie.poster_file:
         if use_thumb:

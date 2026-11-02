@@ -243,11 +243,8 @@ class StorageService:
     def get_poster_url(self, poster_file: str, thumb: bool = False) -> str | None:
         if not self.is_s3_enabled or not poster_file:
             return None
-        key = poster_file
-        if thumb:
-            stem = Path(poster_file).stem
-            key = f"{THUMBS_FOLDER}/{stem}_{DEFAULT_THUMB_WIDTH}w.webp"
-        return self.get_presigned_url(key, expires_in=86400)
+        # En S3 servimos directamente el archivo en posters/ garantizando compatibilidad con los backups
+        return self.get_presigned_url(poster_file, expires_in=86400)
 
 
 storage = StorageService()
