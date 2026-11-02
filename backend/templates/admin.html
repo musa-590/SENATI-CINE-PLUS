@@ -1,0 +1,638 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+
+{% block title %}Panel de administración · CINE PLUS{% endblock %}
+
+{% block content %}
+<div class="admin-shell">
+  <header class="admin-topbar">
+    <div class="admin-topbar-left">
+      <a class="brand" href="{{ url_for('web.billboard_view') }}" aria-label="Volver a la cartelera pública">
+        <span class="brand-mark">
+          {{ icon("film", size=20) }}
+        </span>
+        <span class="brand-copy">
+          <span class="brand-name">CINE PLUS</span>
+          <span class="brand-sub">Sala de tráilers</span>
+        </span>
+      </a>
+      <span class="admin-divider"></span>
+      <div class="admin-topbar-title">
+        <strong>Panel de administración</strong>
+        <span>Cartelera, categorías y seguridad</span>
+      </div>
+    </div>
+
+    <div class="admin-topbar-right">
+      <div class="user-chip">
+        <span class="user-avatar">{{ (current_user.name or 'A')[:1]|upper }}</span>
+        <span class="user-chip-copy">
+          <strong>{{ current_user.name or 'Administrador' }}</strong>
+          <span>{{ current_user.email }}</span>
+        </span>
+      </div>
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('web.billboard_view') }}">
+        Ver sitio
+        {{ icon("arrow-right", size=13) }}
+      </a>
+      <a class="btn btn--ghost btn--icon" href="{{ url_for('web.logout_view') }}" title="Cerrar sesión" aria-label="Cerrar sesión">
+        {{ icon("logout", size=16) }}
+      </a>
+    </div>
+  </header>
+
+  <div class="admin-layout">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div class="admin-tabs" role="tablist" aria-label="Secciones del panel">
+        <button class="admin-tab is-active" type="button" role="tab" id="tab-btn-library" data-tab="library" aria-selected="true">
+          {{ icon("film", size=13) }}
+          Biblioteca
+        </button>
+        <button class="admin-tab" type="button" role="tab" id="tab-btn-categories" data-tab="categories" aria-selected="false">
+          {{ icon("grid", size=13) }}
+          Categorías
+        </button>
+        <button class="admin-tab" type="button" role="tab" id="tab-btn-account" data-tab="account" aria-selected="false">
+          {{ icon("user", size=13) }}
+          Cuenta
+        </button>
+      </div>
+
+      <button class="btn btn--primary btn--sm" type="button" id="admin-new-movie-btn">
+        {{ icon("spark", size=14) }}
+        Nuevo tráiler
+      </button>
+    </div>
+
+    <!-- SECCIÓN BIBLIOTECA -->
+    <div id="section-library" class="admin-tab-pane">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Películas totales</div>
+          <div class="stat-value" id="stat-movies-count">{{ "%02d" % stats.movies }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Publicadas</div>
+          <div class="stat-value" id="stat-published-count">{{ "%02d" % stats.published }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">En portada</div>
+          <div class="stat-value" id="stat-featured-count">{{ "%02d" % stats.featured }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Almacenamiento</div>
+          <div class="stat-value">
+            <span id="stat-storage-mb">{{ stats.storage_mb }}</span>
+            <small>MB</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <!-- Formulario Subir / Editar Película -->
+        <section class="card" id="movie-form-card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title" id="form-card-title">Subir nuevo tráiler</h2>
+              <p class="card-sub" id="form-card-sub">
+                Acepta MP4 y WebM. El póster se genera automáticamente si no subes uno.
+              </p>
+            </div>
+            <span class="badge badge--star" id="form-badge-edit" style="display: none;">Edición</span>
+          </div>
+          <div class="card-body">
+            <form id="movie-form" class="form-grid" enctype="multipart/form-data">
+              <input type="hidden" id="movie-id" name="movie_id" value="" />
+
+              <div class="field">
+                <label for="movie-title">Título</label>
+                <input
+                  id="movie-title"
+                  name="title"
+                  placeholder="Ej. El último horizonte"
+                  maxlength="180"
+                  required
+                />
+              </div>
+
+              <div class="field">
+                <label for="movie-description">Sinopsis</label>
+                <textarea
+                  id="movie-description"
+                  name="description"
+                  placeholder="Una sinopsis breve que invite a ver el tráiler…"
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <div class="field-row field-row--three">
+                <div class="field">
+                  <label for="movie-year">Año</label>
+                  <input
+                    id="movie-year"
+                    name="year"
+                    type="number"
+                    min="1888"
+                    max="2100"
+                    placeholder="2026"
+                  />
+                </div>
+                <div class="field">
+                  <label for="movie-duration">Duración (min)</label>
+                  <input
+                    id="movie-duration"
+                    name="duration"
+                    type="number"
+                    min="0"
+                    max="600"
+                    placeholder="120"
+                  />
+                </div>
+                <div class="field">
+                  <label for="movie-rating">Clasificación</label>
+                  <select id="movie-rating" name="rating">
+                    <option value="TP">TP · Todo público</option>
+                    <option value="TE">TE · Todo espectador</option>
+                    <option value="7+">7+</option>
+                    <option value="14+">14+</option>
+                    <option value="18+">18+</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label for="movie-category">Categoría</label>
+                  <select id="movie-category" name="category_id">
+                    <option value="">Sin categoría</option>
+                    {% for cat in categories %}
+                      <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field">
+                  <span class="field-label">Publicación</span>
+                  <div class="switch-row" style="padding-top: 8px;">
+                    <label class="switch">
+                      <input type="checkbox" id="movie-published" name="published" checked />
+                      <span class="switch-track"></span>
+                      Visible
+                    </label>
+                    <label class="switch">
+                      <input type="checkbox" id="movie-featured" name="featured" />
+                      <span class="switch-track"></span>
+                      En portada
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Archivos: Vídeo y Póster -->
+              <div class="field-row">
+                <div class="field">
+                  <label for="movie-video-input">Tráiler de vídeo (.mp4 / .webm)</label>
+                  <input
+                    type="file"
+                    id="movie-video-input"
+                    name="video"
+                    accept="video/mp4,video/webm"
+                    style="display: none;"
+                  />
+                  <div class="file-drop" id="video-dropzone" tabindex="0" role="button">
+                    <span class="file-drop-icon">{{ icon("upload", size=18) }}</span>
+                    <strong id="video-file-label">Elegir archivo de vídeo</strong>
+                    <span class="file-drop-sub">Máx. 2 GB · MP4 o WebM</span>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label for="movie-poster-input">Póster opcional (.jpg, .png, .webp)</label>
+                  <input
+                    type="file"
+                    id="movie-poster-input"
+                    name="poster"
+                    accept="image/jpeg,image/png,image/webp"
+                    style="display: none;"
+                  />
+                  <div class="file-drop" id="poster-dropzone" tabindex="0" role="button">
+                    <span class="file-drop-icon">{{ icon("film", size=18) }}</span>
+                    <strong id="poster-file-label">Elegir imagen de póster</strong>
+                    <span class="file-drop-sub">Automático en SVG si se deja vacío</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Previsualización de póster seleccionado -->
+              <div id="poster-preview-wrapper" style="display: none; align-items: center; gap: 12px;">
+                <img id="poster-preview-img" src="" alt="Vista previa del póster" style="width: 56px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line);" />
+                <div>
+                  <strong style="display: block; font-size: 13px;">Póster seleccionado</strong>
+                  <button type="button" class="btn btn--ghost btn--sm" id="clear-poster-btn" style="margin-top: 4px;">Quitar selección</button>
+                </div>
+              </div>
+
+              <!-- Barra de progreso de subida -->
+              <div id="upload-progress-box" style="display: none; margin-top: 6px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+                  <span id="progress-status-text">Subiendo archivos al servidor…</span>
+                  <strong id="progress-percent">0%</strong>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div id="form-error-alert" class="form-error" style="display: none;"></div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn--ghost" id="form-cancel-btn" style="display: none;">
+                  Cancelar edición
+                </button>
+                <button type="submit" class="btn btn--primary" id="form-submit-btn">
+                  {{ icon("plus", size=14) }}
+                  <span id="form-submit-label">Publicar tráiler</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- Lista de Biblioteca -->
+        <section class="card" id="library-card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Biblioteca</h2>
+              <p class="card-sub" id="library-subtitle">
+                {{ movies|length }} títulos · {{ stats.unpublished }} ocultos · {{ stats.without_category }} sin categoría
+              </p>
+            </div>
+            <span class="status-dot"></span>
+          </div>
+          <div class="card-body card-body--flush">
+            <div class="admin-list-tool">
+              <div class="search">
+                {{ icon("search", size=14) }}
+                <input
+                  id="admin-movie-search"
+                  type="search"
+                  placeholder="Filtrar biblioteca…"
+                  aria-label="Filtrar películas"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+
+            <div class="admin-movie-list" id="admin-movie-list">
+              {% for movie in movies %}
+                <article
+                  class="admin-movie"
+                  id="admin-movie-{{ movie.id }}"
+                  data-movie-id="{{ movie.id }}"
+                  data-title="{{ movie.title }}"
+                  data-category="{{ movie.category.name if movie.category else '' }}"
+                  data-year="{{ movie.year or '' }}"
+                >
+                  <img
+                    class="admin-movie-poster"
+                    src="{{ movie.poster_thumb_url }}"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div class="admin-movie-info">
+                    <span class="admin-movie-title" title="{{ movie.title }}">{{ movie.title }}</span>
+                    <span class="admin-movie-meta">
+                      <span>{{ movie.category.name if movie.category else 'Sin categoría' }}</span>
+                      {% if movie.year %}
+                        <i></i>
+                        <span>{{ movie.year }}</span>
+                      {% endif %}
+                      <i></i>
+                      <span>{{ (movie.duration ~ ' min') if movie.duration else 'Duración no indicada' }}</span>
+                    </span>
+                    <span class="admin-movie-meta">
+                      <span class="badge {{ 'badge--ok' if movie.published else 'badge--off' }}" id="badge-pub-{{ movie.id }}">
+                        {{ 'Publicada' if movie.published else 'Oculta' }}
+                      </span>
+                      {% if movie.featured %}
+                        <span class="badge badge--star">Portada</span>
+                      {% endif %}
+                      <span class="badge">{{ movie.rating or 'TP' }}</span>
+                    </span>
+                  </div>
+
+                  <div class="admin-movie-actions">
+                    <button
+                      class="mini-btn admin-btn-preview"
+                      type="button"
+                      data-id="{{ movie.id }}"
+                      title="Previsualizar"
+                      aria-label="Previsualizar {{ movie.title }}"
+                    >
+                      {{ icon("eye", size=15) }}
+                    </button>
+                    <button
+                      class="mini-btn admin-btn-toggle"
+                      type="button"
+                      data-id="{{ movie.id }}"
+                      data-published="{{ '1' if movie.published else '0' }}"
+                      title="{{ 'Ocultar de la cartelera' if movie.published else 'Publicar en la cartelera' }}"
+                      aria-label="Alternar visibilidad de {{ movie.title }}"
+                    >
+                      {{ icon("eye-off" if movie.published else "eye", size=15) }}
+                    </button>
+                    <button
+                      class="mini-btn admin-btn-edit"
+                      type="button"
+                      data-id="{{ movie.id }}"
+                      title="Editar"
+                      aria-label="Editar {{ movie.title }}"
+                    >
+                      {{ icon("edit", size=15) }}
+                    </button>
+                    <button
+                      class="mini-btn mini-btn--danger admin-btn-delete"
+                      type="button"
+                      data-id="{{ movie.id }}"
+                      data-title="{{ movie.title }}"
+                      title="Eliminar"
+                      aria-label="Eliminar {{ movie.title }}"
+                    >
+                      {{ icon("trash", size=15) }}
+                    </button>
+                  </div>
+                </article>
+              {% else %}
+                <div class="empty" style="min-height: 240px; margin: 8px;">
+                  <span class="empty-icon">{{ icon("film", size=22) }}</span>
+                  <h3>Aún no hay películas</h3>
+                  <p>Publica tu primer tráiler con el formulario de la izquierda.</p>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- SECCIÓN CATEGORÍAS -->
+    <div id="section-categories" class="admin-tab-pane" style="display: none;">
+      <div class="admin-grid">
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Categorías de la cartelera</h2>
+              <p class="card-sub">Se muestran en los filtros y el menú lateral de la web pública.</p>
+            </div>
+            <span class="section-count">
+              <b id="category-total-badge">{{ "%02d" % categories|length }}</b>
+              categorías
+            </span>
+          </div>
+
+          <div class="card-body">
+            <!-- Formulario Crear/Editar Categoría -->
+            <form id="category-form" class="form-grid">
+              <input type="hidden" id="category-edit-id" value="" />
+              <div class="field-row">
+                <div class="field">
+                  <label for="category-name-input">Nombre de la categoría</label>
+                  <input
+                    id="category-name-input"
+                    placeholder="Ej. Documental"
+                    maxlength="80"
+                    required
+                  />
+                </div>
+                <div class="field">
+                  <label for="category-order-input">Orden numérico</label>
+                  <input
+                    id="category-order-input"
+                    type="number"
+                    placeholder="60"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <span class="field-label">Color de acento</span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  {% for c in ['#d9c7ae', '#c08a6b', '#a8927b', '#8fa3a8', '#9c8aa3', '#c4b283'] %}
+                    <button
+                      type="button"
+                      class="color-pick-swatch"
+                      data-color="{{ c }}"
+                      style="width: 30px; height: 30px; border-radius: 50%; background: {{ c }}; cursor: pointer; border: 2px solid transparent;"
+                      aria-label="Color {{ c }}"
+                    ></button>
+                  {% endfor %}
+                  <input
+                    class="color-input"
+                    type="color"
+                    id="category-accent-picker"
+                    value="#d9c7ae"
+                    aria-label="Color personalizado"
+                  />
+                </div>
+              </div>
+
+              <div id="category-form-error" class="form-error" style="display: none;"></div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn--ghost btn--sm" id="category-cancel-edit-btn" style="display: none;">
+                  Cancelar
+                </button>
+                <button class="btn btn--primary btn--sm" type="submit" id="category-submit-btn">
+                  {{ icon("plus", size=14) }}
+                  <span id="category-submit-label">Crear categoría</span>
+                </button>
+              </div>
+            </form>
+
+            <div style="height: 1px; background: var(--line-soft); margin: 20px 0 16px;"></div>
+
+            <div class="category-list" id="admin-category-list">
+              {% for category in categories %}
+                <div class="category-row" id="cat-row-{{ category.id }}">
+                  <span class="category-dot" style="background: {{ category.accent }}; color: {{ category.accent }};"></span>
+                  <div class="category-info">
+                    <strong>{{ category.name }}</strong>
+                    <span>
+                      {{ category.movie_count or 0 }} {{ 'película' if category.movie_count == 1 else 'películas' }} · /{{ category.slug }}
+                    </span>
+                  </div>
+                  <div style="display: flex; gap: 6px;">
+                    <button
+                      class="mini-btn cat-btn-edit"
+                      type="button"
+                      data-id="{{ category.id }}"
+                      data-name="{{ category.name }}"
+                      data-accent="{{ category.accent }}"
+                      data-order="{{ category.sort_order }}"
+                      title="Editar categoría"
+                      aria-label="Editar {{ category.name }}"
+                    >
+                      {{ icon("edit", size=14) }}
+                    </button>
+                    <button
+                      class="mini-btn mini-btn--danger cat-btn-delete"
+                      type="button"
+                      data-id="{{ category.id }}"
+                      data-name="{{ category.name }}"
+                      data-count="{{ category.movie_count or 0 }}"
+                      title="Eliminar categoría"
+                      aria-label="Eliminar {{ category.name }}"
+                    >
+                      {{ icon("trash", size=14) }}
+                    </button>
+                  </div>
+                </div>
+              {% else %}
+                <div class="empty" style="min-height: 170px;">
+                  <span class="empty-icon">{{ icon("tag", size=20) }}</span>
+                  <h3>Sin categorías</h3>
+                  <p>Crea la primera para organizar la cartelera.</p>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+
+        <!-- Tarjeta informativa -->
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2 class="card-title">Cómo funciona</h2>
+              <p class="card-sub">Buenas prácticas para mantener la sala ordenada.</p>
+            </div>
+            <span class="brand-mark" style="width: 38px; height: 38px;">
+              {{ icon("tag", size=16) }}
+            </span>
+          </div>
+          <div class="card-body" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; gap: 12px;">
+              <span class="file-drop-icon" style="width: 34px; height: 34px;">
+                {{ icon("tag", size=15) }}
+              </span>
+              <div>
+                <strong style="display: block; font-size: 12px; font-weight: 600;">Color y orden</strong>
+                <span style="color: var(--muted); font-size: 11px; lineHeight: 1.6;">
+                  El acento de cada categoría tiñe el póster generado en SVG y el resplandor de las tarjetas. El orden numérico define su posición en la cartelera.
+                </span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <span class="file-drop-icon" style="width: 34px; height: 34px;">
+                {{ icon("film", size=15) }}
+              </span>
+              <div>
+                <strong style="display: block; font-size: 12px; font-weight: 600;">Películas asignadas</strong>
+                <span style="color: var(--muted); font-size: 11px; lineHeight: 1.6;">
+                  Una categoría con películas no se puede eliminar directamente para evitar títulos huérfanos. Primero reasigna o elimina esos títulos.
+                </span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <span class="file-drop-icon" style="width: 34px; height: 34px;">
+                {{ icon("database", size=15) }}
+              </span>
+              <div>
+                <strong style="display: block; font-size: 12px; font-weight: 600;">Streaming con HTTP Range</strong>
+                <span style="color: var(--muted); font-size: 11px; lineHeight: 1.6;">
+                  Los vídeos residen en backend/uploads y se sirven mediante rangos HTTP parciales (206), permitiendo adelantar o retroceder el tráiler sin esperas.
+                </span>
+              </div>
+            </div>
+
+            <div class="login-demo" style="margin-top: 4px;">
+              <strong>Resumen actual</strong>
+              {{ stats.movies }} películas · {{ stats.published }} publicadas · {{ stats.categories }} categorías · {{ stats.storage_mb }} MB en disco.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- SECCIÓN CUENTA -->
+    <div id="section-account" class="admin-tab-pane" style="display: none;">
+      <section class="card account-card">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">Seguridad de la cuenta</h2>
+            <p class="card-sub">Cambia la contraseña del administrador.</p>
+          </div>
+          <span class="brand-mark" style="width: 38px; height: 38px;">
+            {{ icon("lock", size=16) }}
+          </span>
+        </div>
+        <div class="card-body">
+          <p class="account-note">
+            La sesión se mantiene activa de forma segura mediante cookies HttpOnly durante 12 horas.
+          </p>
+          <form id="password-form" class="form-grid">
+            <div class="field">
+              <label for="current-password">Contraseña actual</label>
+              <input
+                id="current-password"
+                type="password"
+                autocomplete="current-password"
+                required
+              />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="new-password">Nueva contraseña (mín. 8 caracteres)</label>
+                <input
+                  id="new-password"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="8"
+                  required
+                />
+              </div>
+              <div class="field">
+                <label for="confirm-password">Repetir nueva contraseña</label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="8"
+                  required
+                />
+              </div>
+            </div>
+
+            <div id="password-form-error" class="form-error" style="display: none;"></div>
+
+            <div class="form-actions">
+              <button class="btn btn--primary" type="submit" id="password-submit-btn">
+                {{ icon("lock", size=14) }}
+                Actualizar contraseña
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="site-footer-copy">
+      <strong>CINE PLUS · Administración</strong>
+      <span>Flask + MySQL + HTML/CSS/JS nativo · Sesión protegida con HttpOnly.</span>
+    </div>
+    <div class="footer-links">
+      <a href="{{ url_for('web.billboard_view') }}">Ver cartelera pública</a>
+      <a href="{{ url_for('web.logout_view') }}">Cerrar sesión</a>
+    </div>
+  </footer>
+</div>
+
+{% include "components/modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

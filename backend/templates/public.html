@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+
+{% block title %}CINE PLUS · Tráilers en cartelera{% endblock %}
+
+{% block content %}
+<div class="app">
+  <div class="public-shell" id="public-shell">
+    <!-- Menú lateral interactivo -->
+    <aside class="rail" id="site-sidebar" aria-label="Menú lateral">
+      <div class="rail-head">
+        <a class="brand" href="#top">
+          <span class="brand-mark">
+            {{ icon("film", size=21) }}
+          </span>
+          <span class="brand-copy">
+            <span class="brand-name">CINE PLUS</span>
+            <span class="brand-sub">Sala de tráilers</span>
+          </span>
+        </a>
+        <button class="rail-close" id="sidebar-close-btn" type="button" aria-label="Cerrar menú">
+          {{ icon("close", size=16) }}
+        </button>
+      </div>
+
+      <div class="rail-body">
+        <div class="rail-section-label">
+          <span>Navegación</span>
+          <span>01</span>
+        </div>
+        <nav class="rail-nav-list" aria-label="Navegación principal">
+          <a href="#top" class="rail-nav-link is-active" data-nav="0">
+            <span class="rail-nav-dot"></span>
+            <span>Inicio</span>
+          </a>
+          <a href="#cartelera" class="rail-nav-link" data-nav="1">
+            <span class="rail-nav-dot"></span>
+            <span>Cartelera</span>
+          </a>
+          <a href="#portada" class="rail-nav-link" data-nav="2">
+            <span class="rail-nav-dot"></span>
+            <span>En portada</span>
+          </a>
+        </nav>
+
+        <div class="rail-section-label" style="margin-top: 22px;">
+          <span>Categorías</span>
+          <span>{{ "%02d" % categories|length }}</span>
+        </div>
+        <div class="rail-category-list" role="group" aria-label="Filtro de categorías lateral">
+          <button type="button" class="rail-cat-item is-active" data-slug="">
+            <span class="cat-dot" style="background: var(--ink);"></span>
+            <span class="cat-name">Todas las salas</span>
+            <span class="cat-badge">{{ stats.total }}</span>
+          </button>
+          {% for category in categories %}
+            <button type="button" class="rail-cat-item" data-slug="{{ category.slug }}">
+              <span class="cat-dot" style="background: {{ category.accent }};"></span>
+              <span class="cat-name">{{ category.name }}</span>
+              <span class="cat-badge">{{ category.movie_count or 0 }}</span>
+            </button>
+          {% endfor %}
+        </div>
+
+        <div class="rail-divider"></div>
+
+        <div class="rail-footer">
+          <a class="btn btn--ghost btn--full" href="{{ url_for('web.admin_dashboard_view') if current_user else url_for('web.login_view') }}">
+            {{ icon("admin", size=15) }}
+            <span>{{ "Panel Admin" if current_user else "Acceso Admin" }}</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <button class="rail-backdrop" id="sidebar-backdrop" type="button" aria-label="Cerrar menú" style="display: none;"></button>
+
+    <!-- Contenido principal -->
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" id="sidebar-toggle-btn" type="button" aria-label="Abrir menú">
+            {{ icon("menu", size=18) }}
+          </button>
+          <div class="topbar-context">
+            <strong>Cine Plus</strong>
+            <span>Cartelera pública · sin registro</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <a class="btn btn--primary" href="{{ url_for('web.admin_dashboard_view') if current_user else url_for('web.login_view') }}">
+            {{ icon("admin", size=15) }}
+            <span class="btn--admin-label">Admin</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- Hero Section -->
+      <section class="hero" id="top" aria-labelledby="cine-plus-title">
+        <h1 class="sr-only" id="cine-plus-title">CINE PLUS — sala de tráilers</h1>
+
+        <div class="hero-top">
+          <p class="kicker">Sala 01 · Cartelera</p>
+          <span class="hero-pill">
+            <i></i>
+            Temporada 2026
+          </span>
+        </div>
+
+        <div class="hero-mesh" aria-hidden="true">
+          <div class="hero-static-title">CINE PLUS</div>
+          <canvas id="hero-elastic-canvas" class="hero-elastic" data-text="CINE PLUS"></canvas>
+        </div>
+
+        <div class="hero-bottom">
+          <div>
+            <p class="hero-lead">
+              Una sala para ver <strong>los tráilers que importan</strong>. Sin cuentas, sin
+              esperas: elige una historia, sube el volumen y deja que la pantalla haga el resto.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn--primary" href="#cartelera">
+                Explorar cartelera
+                {{ icon("arrow-right", size=16) }}
+              </a>
+              <a class="btn btn--ghost" href="#portada">
+                {{ icon("play", size=13) }}
+                En portada
+              </a>
+            </div>
+          </div>
+
+          <div class="hero-stats" aria-label="Resumen de la cartelera">
+            <div class="hero-stat">
+              <b>{{ "%02d" % stats.total }}</b>
+              <span>Películas</span>
+            </div>
+            <div class="hero-stat">
+              <b>{{ "%02d" % stats.categories }}</b>
+              <span>Categorías</span>
+            </div>
+            <div class="hero-stat">
+              <b>{{ "%02d" % stats.featured }}</b>
+              <span>En portada</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Carrusel 3D En Portada -->
+      {% if featured_movies %}
+      <section class="carousel-panel" id="portada" aria-labelledby="portada-title">
+        <div class="panel-head">
+          <div class="panel-head-left">
+            {{ icon("spark", size=13) }}
+            <h2 class="panel-title" id="portada-title">Selección de la casa</h2>
+          </div>
+          <span class="panel-hint">
+            {{ icon("drag", size=14) }}
+            Arrastra · haz clic para abrir
+          </span>
+        </div>
+        <div class="carousel-stage" id="carousel-stage" tabindex="0" role="region" aria-label="Carrusel de películas en portada">
+          <canvas id="carousel-canvas" class="carousel-canvas" aria-hidden="true"></canvas>
+          <div class="flex-carousel__caption" id="carousel-caption" aria-live="polite">
+            <div class="flex-carousel__title">
+              <strong id="carousel-title">Película destacada</strong>
+              <span class="flex-carousel__subtitle" id="carousel-subtitle">Tráiler oficial</span>
+            </div>
+            <div class="flex-carousel__count" id="carousel-count">
+              <span id="carousel-current-index">01</span>
+              <span class="flex-carousel__slash">/</span>
+              <span id="carousel-total-count">{{ "%02d" % featured_movies|length }}</span>
+            </div>
+          </div>
+          <!-- Datos JSON embebidos para inicialización rápida del carrusel OGL -->
+          <script id="featured-movies-json" type="application/json">
+            [
+              {% for movie in featured_movies %}
+              {
+                "id": {{ movie.id }},
+                "title": {{ movie.title|tojson }},
+                "src": {{ movie.poster_thumb_url|tojson }},
+                "fullPoster": {{ movie.poster_url|tojson }},
+                "category": {{ (movie.category.name if movie.category else "")|tojson }},
+                "year": {{ (movie.year or "")|tojson }}
+              }{% if not loop.last %},{% endif %}
+              {% endfor %}
+            ]
+          </script>
+        </div>
+      </section>
+      {% endif %}
+
+      <!-- Catálogo de Películas -->
+      <section class="section" id="cartelera" aria-labelledby="cartelera-title">
+        <div class="section-head">
+          <div class="section-head-copy">
+            <p class="kicker">Ahora en pantalla</p>
+            <h2 class="section-title" id="cartelera-title">
+              Todas las <em>historias</em>
+            </h2>
+            <p class="section-sub" id="cartelera-sub">
+              Tráilers completos, sin registro. Elige una portada para abrir la sala de proyección.
+            </p>
+          </div>
+          <span class="section-count">
+            <b id="visible-movie-count">{{ "%02d" % movies|length }}</b>
+            <span id="visible-movie-label">títulos</span>
+          </span>
+        </div>
+
+        <!-- Filtros de categoría -->
+        <div class="filter-row" role="group" aria-label="Filtrar por categoría">
+          <button type="button" class="filter-chip is-active" data-slug="">
+            Todas
+            <span class="filter-chip-count">{{ stats.total }}</span>
+          </button>
+          {% for category in categories %}
+            <button type="button" class="filter-chip" data-slug="{{ category.slug }}">
+              {{ category.name }}
+              <span class="filter-chip-count">{{ category.movie_count or 0 }}</span>
+            </button>
+          {% endfor %}
+          <button type="button" class="filter-chip" id="clear-filters-btn" style="display: none;">
+            Limpiar filtros
+          </button>
+        </div>
+
+        <!-- Cuadrícula de películas (Server-rendered + JS enhanced) -->
+        <div class="catalog-panel">
+          <div class="chroma-grid" id="movies-grid" data-reveal="card">
+            <div class="chroma-grid-inner">
+              {% for movie in movies %}
+                <article
+                  class="chroma-card cursor-target"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Ver tráiler de {{ movie.title }}"
+                  data-movie-id="{{ movie.id }}"
+                  data-title="{{ movie.title }}"
+                  data-description="{{ movie.description }}"
+                  data-year="{{ movie.year or '' }}"
+                  data-duration="{{ movie.duration or '' }}"
+                  data-rating="{{ movie.rating }}"
+                  data-category-name="{{ movie.category.name if movie.category else 'Sin categoría' }}"
+                  data-category-slug="{{ movie.category.slug if movie.category else '' }}"
+                  data-category-accent="{{ movie.category.accent if movie.category else '#d9c7ae' }}"
+                  data-stream-url="{{ movie.stream_url }}"
+                  data-poster-url="{{ movie.poster_url }}"
+                  data-featured="{{ '1' if movie.featured else '0' }}"
+                  data-video-type="{{ movie.video_mime }}"
+                  style="--chroma-accent: {{ movie.category.accent if movie.category else '#d9c7ae' }};"
+                >
+                  <span class="chroma-wash" aria-hidden="true"></span>
+                  <div class="chroma-media" data-chroma-area="">
+                    <img
+                      class="chroma-mono"
+                      src="{{ movie.poster_thumb_url }}"
+                      alt="Póster de {{ movie.title }}"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span class="chroma-media-rim" aria-hidden="true"></span>
+                  </div>
+                  <div class="chroma-info">
+                    <span class="chroma-title">{{ movie.title }}</span>
+                    <span class="chroma-subtitle">
+                      {{ movie.category.name if movie.category else '' }}{% if movie.category and movie.year %} · {% endif %}{{ movie.year or '' }}
+                    </span>
+                  </div>
+                  <span class="chroma-card-rim" aria-hidden="true"></span>
+                  <span class="chroma-card-glow" aria-hidden="true"></span>
+                </article>
+              {% else %}
+                <div class="empty" id="no-movies-empty">
+                  <span class="empty-icon">{{ icon("film", size=24) }}</span>
+                  <h3>La cartelera está vacía</h3>
+                  <p>Todavía no hay tráilers publicados.</p>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="empty" id="no-results-empty" style="display: none;">
+            <span class="empty-icon">{{ icon("search", size=24) }}</span>
+            <h3>No encontramos coincidencias</h3>
+            <p>Prueba con otra categoría o cambia el término de búsqueda.</p>
+            <button class="btn btn--sm" type="button" id="empty-clear-filters-btn">
+              Quitar filtros
+              {{ icon("arrow-right", size=14) }}
+            </button>
+          </div>
+        </div>
+
+        <footer class="site-footer">
+          <div class="site-footer-copy">
+            <strong>CINE PLUS · Sala de tráilers</strong>
+            <span>Flask + MySQL + Módulos Web nativos · Hecho para ver en grande.</span>
+          </div>
+          <div class="footer-links">
+            <a href="#top">Volver arriba</a>
+            <a href="#cartelera">Cartelera</a>
+            <a href="{{ url_for('web.admin_dashboard_view') if current_user else url_for('web.login_view') }}">Administración</a>
+          </div>
+        </footer>
+      </main>
+    </div>
+  </div>
+</div>
+
+{% include "components/modal.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=v3"></script>
+{% endblock %}

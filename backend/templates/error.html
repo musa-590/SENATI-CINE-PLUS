@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+
+{% block title %}Error {{ code }} · CINE PLUS{% endblock %}
+
+{% block content %}
+<div class="admin-login">
+  <div class="login-card" style="text-align: center;">
+    <div class="login-brand" style="justify-content: center;">
+      <span class="brand-mark">
+        {{ icon("film", size=23) }}
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">CINE PLUS</span>
+        <span class="brand-sub">Sala de tráilers</span>
+      </span>
+    </div>
+
+    <p class="kicker">Aviso de navegación</p>
+    <h1 class="login-title">Error {{ code }}</h1>
+    <p class="login-sub">{{ message }}</p>
+
+    <div style="margin-top: 24px;">
+      <a class="btn btn--primary" href="{{ url_for('web.billboard_view') }}">
+        {{ icon("arrow-left", size=14) }}
+        Volver a la cartelera pública
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

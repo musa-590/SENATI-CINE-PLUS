@@ -1,0 +1,48 @@
+# ==============================================================================
+# Git Ignore - Cine Plus
+# ==============================================================================
+
+# Entornos virtuales de Python
+.venv/
+env/
+venv/
+ENV/
+
+# Archivos de caché y compilación
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Entorno de pruebas y runtime local
+.runtime/
+checkbal.py
+repair.py
+repair2.py
+marckdown/
+deploy/
+
+# Archivos multimedia subidos localmente (no sobrecargar el repositorio)
+backend/uploads/videos/*
+backend/uploads/posters/*
+!backend/uploads/videos/.gitkeep
+!backend/uploads/posters/.gitkeep
+
+# Archivos de entorno y credenciales (evitar subir claves al repositorio)
+backend/.env
+.env
+*.pem
+*.key
+
+# Logs y bases de datos locales
+*.log
+*.sqlite3
+*.db
+
+# Archivos de sistema operativo e IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,60 @@
+{% from "components/icons.html" import icon %}
+
+<div id="movie-modal" class="modal-overlay" role="presentation" style="display: none;">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="movie-modal-title">
+    <button id="modal-close-btn" class="modal-close" type="button" aria-label="Cerrar tráiler">
+      {{ icon("close", size=18) }}
+    </button>
+
+    <div class="modal-video" id="modal-video-stage">
+      <div class="modal-video-backdrop" id="modal-video-backdrop" aria-hidden="true"></div>
+      <video
+        id="modal-video-player"
+        controls
+        playsinline
+        preload="metadata"
+      >
+        Tu navegador no puede reproducir este tráiler.
+      </video>
+      <div class="modal-video-poster" id="modal-video-poster" aria-hidden="true"></div>
+      <button class="modal-play" id="modal-play-btn" type="button" aria-label="Reproducir tráiler">
+        {{ icon("play", size=26) }}
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div>
+        <div class="modal-tags">
+          <span id="modal-tag-category" class="tag tag--accent">Categoría</span>
+          <span id="modal-tag-rating" class="tag">TP</span>
+          <span id="modal-tag-featured" class="tag" style="display: none;">En portada</span>
+          <span id="modal-tag-type" class="tag">MP4</span>
+        </div>
+        <h2 id="movie-modal-title" class="modal-title">Título de la película</h2>
+        <p id="modal-description" class="modal-desc">Sinopsis del tráiler.</p>
+      </div>
+
+      <div class="modal-side">
+        <div class="modal-meta">
+          <div class="modal-meta-item">
+            <span>Año</span>
+            <strong id="modal-meta-year">—</strong>
+          </div>
+          <div class="modal-meta-item">
+            <span>Duración</span>
+            <strong id="modal-meta-duration">—</strong>
+          </div>
+          <div class="modal-meta-item">
+            <span>Formato</span>
+            <strong id="modal-meta-format">H.264 / AAC</strong>
+          </div>
+        </div>
+
+        <a id="modal-download-link" class="btn btn--ghost btn--full" href="#" target="_blank" rel="noopener noreferrer">
+          {{ icon("external", size=14) }}
+          Abrir tráiler en pestaña
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="csrf-token" content="{{ csrf_token }}" />
+  <title>{% block title %}CINE PLUS · Tráilers en cartelera{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <!-- Canvas del halo líquido (BlobCursor) -->
+  <canvas id="blob-cursor-canvas" class="blob-cursor-canvas" aria-hidden="true"></canvas>
+  <!-- Fondo dinámico continuo -->
+  <div class="site-bg" aria-hidden="true">
+    <canvas id="flux-lines-canvas" class="flux-lines-canvas"></canvas>
+  </div>
+  <div class="site-veil" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- Retícula de puntero interactiva -->
+  <div id="target-cursor" class="target-cursor" aria-hidden="true" style="opacity: 0;">
+    <div class="target-cursor-box">
+      <span class="target-corner target-tl"></span>
+      <span class="target-corner target-tr"></span>
+      <span class="target-corner target-bl"></span>
+      <span class="target-corner target-br"></span>
+      <span class="target-dot"></span>
+    </div>
+    <span class="target-label">Ver tráiler</span>
+  </div>
+
+  <!-- Notificaciones Toast -->
+  <div id="toast-container" class="toast-portal" aria-live="polite">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="toast toast--{{ category }} is-visible" role="status">
+            <span class="toast-msg">{{ message }}</span>
+            <button class="toast-close" type="button" aria-label="Cerrar notificación" onclick="this.parentElement.remove()">×</button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  {% block content %}{% endblock %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

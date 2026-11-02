@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% from "components/icons.html" import icon %}
+
+{% block title %}Iniciar sesión · CINE PLUS{% endblock %}
+
+{% block content %}
+<div class="admin-login">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="brand-mark">
+        {{ icon("film", size=23) }}
+      </span>
+      <span class="brand-copy">
+        <span class="brand-name">CINE PLUS</span>
+        <span class="brand-sub">Sala de tráilers</span>
+      </span>
+    </div>
+
+    <p class="kicker">Acceso privado</p>
+    <h1 class="login-title">Panel de administración</h1>
+    <p class="login-sub">
+      Inicia sesión para subir tráilers, ordenar categorías y controlar la cartelera.
+    </p>
+
+    {% if error %}
+      <div class="login-error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form class="login-form" method="POST" action="{{ url_for('web.login_view') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <input type="hidden" name="next" value="{{ next_url }}" />
+
+      <div class="field">
+        <label for="login-email">Correo</label>
+        <input
+          id="login-email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          placeholder="admin@cineplus.local"
+          required
+          autofocus
+        />
+      </div>
+
+      <div class="field">
+        <label for="login-password">Contraseña</label>
+        <div style="position: relative;">
+          <input
+            id="login-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            style="padding-right: 44px;"
+            required
+          />
+          <button
+            type="button"
+            id="toggle-pwd-btn"
+            aria-label="Mostrar u ocultar contraseña"
+            style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: transparent; border: none; color: var(--faint); cursor: pointer;"
+          >
+            {{ icon("lock", size=15) }}
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn--primary" type="submit">
+        {{ icon("admin", size=15) }}
+        Entrar al panel
+      </button>
+    </form>
+
+    <div class="login-demo">
+      <strong>Credenciales locales de desarrollo</strong>
+      <code>admin@cineplus.local</code> · <code>cineplus123</code>
+    </div>
+
+    <div class="login-back">
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('web.billboard_view') }}">
+        {{ icon("arrow-left", size=14) }}
+        Volver a la cartelera
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const toggleBtn = document.getElementById('toggle-pwd-btn');
+  const pwdInput = document.getElementById('login-password');
+  if (toggleBtn && pwdInput) {
+    toggleBtn.addEventListener('click', () => {
+      const isPwd = pwdInput.type === 'password';
+      pwdInput.type = isPwd ? 'text' : 'password';
+    });
+  }
+</script>
+{% endblock %}
