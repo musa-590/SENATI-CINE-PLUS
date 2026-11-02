@@ -181,8 +181,8 @@
               {
                 "id": {{ movie.id }},
                 "title": {{ movie.title|tojson }},
-                "src": {{ movie.poster_thumb_url|tojson }},
-                "fullPoster": {{ movie.poster_url|tojson }},
+                "src": "/api/movies/{{ movie.id }}/poster?v=4",
+                "fullPoster": "/api/movies/{{ movie.id }}/poster?v=4",
                 "category": {{ (movie.category.name if movie.category else "")|tojson }},
                 "year": {{ (movie.year or "")|tojson }}
               }{% if not loop.last %},{% endif %}
@@ -314,5 +314,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=v3"></script>
+<script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=v4"></script>
 {% endblock %}

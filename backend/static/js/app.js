@@ -5,7 +5,7 @@
 
 import { initFluxLines } from './flux-lines.js';
 import { initElasticMesh } from './elastic-mesh.js';
-import { initFlexCarousel } from './flex-carousel.js?v=v3';
+import { initFlexCarousel } from './flex-carousel.js?v=v4';
 import { initChromaGrid } from './chroma-grid.js';
 import { initTargetCursor } from './target-cursor.js';
 import { initTrailerStage } from './trailer-stage.js';
