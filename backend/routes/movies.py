@@ -3,7 +3,7 @@ from __future__ import annotations
 import mimetypes
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, redirect, request, send_file
+from flask import Blueprint, Response, current_app, jsonify, redirect, request, send_file
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
@@ -286,11 +286,13 @@ def poster_movie(movie_id: int):
     upload_folder = current_app.config["UPLOAD_FOLDER"]
     use_thumb = request.args.get("thumb") == "1" or request.args.get("w") is not None
 
-    # Si S3 está activo, redirigir a URL prefirmada de S3
+    # Si S3 está activo, servir los bytes directamente desde S3 hacia el cliente
+    # Esto elimina cualquier problema de CORS en WebGL al servir desde el mismo origen
     if storage.is_s3_enabled and movie.poster_file:
-        s3_url = storage.get_poster_url(movie.poster_file, thumb=use_thumb)
-        if s3_url:
-            resp = redirect(s3_url, code=302)
+        data, mime = storage.get_file_bytes(movie.poster_file)
+        if data:
+            resp = Response(data, mimetype=mime)
+            resp.headers["Cache-Control"] = "public, max-age=86400"
             resp.headers["Access-Control-Allow-Origin"] = "*"
             return resp
 

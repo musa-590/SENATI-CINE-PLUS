@@ -223,6 +223,19 @@ class StorageService:
                     except OSError:
                         pass
 
+    def get_file_bytes(self, relative_path: str) -> tuple[bytes, str] | tuple[None, None]:
+        if not self.is_s3_enabled or not relative_path:
+            return None, None
+        try:
+            s3 = self._get_s3()
+            obj = s3.get_object(Bucket=self.bucket_name, Key=relative_path)
+            data = obj["Body"].read()
+            mime = obj.get("ContentType") or "image/webp"
+            return data, mime
+        except Exception as exc:
+            logger.warning("Error al leer archivo de S3 (%s): %s", relative_path, exc)
+            return None, None
+
     def get_presigned_url(self, relative_path: str, expires_in: int = 3600) -> str | None:
         if not self.is_s3_enabled or not relative_path:
             return None
