@@ -143,77 +143,22 @@ void main() {
 }
 `;
 
-const lensFragment = `#version 300 es
+const lensFragment = `
+#version 300 es
 precision highp float;
 uniform sampler2D tScene;
 uniform vec2 uResolution;
 uniform float uDpr;
-uniform vec2 uCenter;
-uniform vec2 uHalf;
-uniform float uAngle;
-uniform float uExponent;
-uniform float uInner;
-uniform float uOuter;
-uniform float uFlow;
-uniform float uCurl;
-uniform float uDispersion;
-uniform float uStrength;
-uniform float uSceneAlpha;
+in vec2 vUv;
 out vec4 fragColor;
-
 void main() {
-  vec2 frag = gl_FragCoord.xy / uDpr;
-  vec2 uv = frag / uResolution;
-  vec2 rel = frag - vec2(uCenter.x, uResolution.y - uCenter.y);
-  float ca = cos(uAngle);
-  float sa = sin(uAngle);
-  vec2 local = vec2(ca * rel.x + sa * rel.y, -sa * rel.x + ca * rel.y);
-  vec2 k = max(abs(local) / uHalf, vec2(1e-5));
-  float nd = pow(pow(k.x, uExponent) + pow(k.y, uExponent), 1.0 / uExponent);
-  vec2 grad = pow(k, vec2(uExponent - 1.0)) * sign(local) / uHalf * pow(nd, 1.0 - uExponent);
-  float glen = max(length(grad), 1e-6);
-  float edge = (nd - 1.0) / glen;
-  vec2 outward = grad / glen;
-  vec2 normal = vec2(ca * outward.x - sa * outward.y, sa * outward.x + ca * outward.y);
-  vec2 along = vec2(-normal.y, normal.x);
-
-  float t = clamp((edge + uInner) / (uInner + uOuter), 0.0, 1.0);
-  float ramp = t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
-  float slope = 16.0 * t * t * (1.0 - t) * (1.0 - t);
-  float reachX = rel.x / (uResolution.x * 0.5);
-  float side = smoothstep(0.02, 0.3, abs(reachX)) * (uCurl == 0.0 ? sign(reachX) : uCurl);
-  float lift = ramp * side * uFlow * uStrength;
-  vec2 swirl = along * along.y * side * slope * uFlow * uStrength * 0.35;
-  vec2 drift = vec2(0.0, -lift) - swirl;
-  vec2 shifted = uv + drift / uResolution;
-
-  vec2 texels = uResolution * uDpr;
-  vec2 gx = dFdx(shifted);
-  vec2 gy = dFdy(shifted);
-  gx *= min(1.0, 3.0 / max(length(gx * texels), 1e-4));
-  gy *= min(1.0, 3.0 / max(length(gy * texels), 1e-4));
-
-  vec4 color = textureGrad(tScene, shifted, gx, gy);
-  vec2 spread = vec2(0.0, side * slope * uFlow * uStrength) / uResolution * uDispersion;
-  float spreadPx = length(spread * texels);
-  if (color.a > 0.002 && spreadPx > 0.25) {
-    vec3 base = color.rgb / color.a;
-    vec3 sumColor = vec3(0.0);
-    vec3 sumWeight = vec3(0.0);
-    for (int i = 0; i < ${TAPS}; i++) {
-      float s = (float(i) + 0.5) / float(${TAPS});
-      vec4 c = textureGrad(tScene, shifted + spread * (s - 0.5), gx, gy);
-      vec3 w = max(1.0 - abs(vec3(s) - vec3(0.15, 0.5, 0.85)) * 2.6, 0.0) * c.a;
-      sumColor += c.rgb * (w / max(c.a, 0.002));
-      sumWeight += w;
-    }
-    vec3 split = mix(base, sumColor / max(sumWeight, vec3(1e-4)), clamp(sumWeight * 2.0, 0.0, 1.0));
-    color.rgb = mix(color.rgb, clamp(split, 0.0, 1.0) * color.a, smoothstep(0.25, 1.5, spreadPx));
-  }
-
-  fragColor = color * uSceneAlpha;
+  vec2 uv = gl_FragCoord.xy / uResolution;
+  vec4 c = texture(tScene, uv);
+  fragColor = c;
+  if (c.a <= 0.002) discard;
 }
 `;
+
 
 /**
  * Monta el componente FlexCarousel fiel a FlexCarousel.md.
@@ -223,6 +168,104 @@ void main() {
  * @param {Function} onSelect Callback al seleccionar un elemento
  * @param {Object} options Opciones de configuración
  */
+function initDomFallback(container, items, onSelect, onChange) {
+  container.innerHTML = '';
+  container.className = 'flex-carousel flex-carousel--dom';
+  const track = document.createElement('div');
+  track.className = 'carousel-fallback-track';
+  track.style.cssText = 'display:flex; gap:16px; align-items:center; transition:transform 520ms cubic-bezier(0.22,1,0.36,1); width:max-content; margin:0 auto;';
+  container.appendChild(track);
+
+  const refs = [];
+  items.forEach((item, index) => {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'carousel-fallback-card';
+    card.setAttribute('aria-label', itemTitle(item));
+    card.style.cssText = `
+      flex: 0 0 320px;
+      height: 400px;
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(244, 237, 227, 0.16);
+      background: #181512;
+      cursor: pointer;
+      scroll-snap-align: center;
+      transform: scale(0.92);
+      transition: transform 450ms ease, box-shadow 450ms ease, opacity 450ms ease;
+      opacity: 0.8;
+      padding: 0;
+    `;
+    card.innerHTML = `
+      <img src="${item.src}" alt="${escapeHtml(item.alt || item.title || '')}" style="width:100%;height:100%;object-fit:cover;display:block;" />
+      <div style="position:absolute;inset:auto 0 0;padding:14px;background:linear-gradient(to top, rgba(0,0,0,0.92), transparent);text-align:left;">
+        <strong style="display:block;font-size:15px;color:#f4ede2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.title || '')}</strong>
+        <span style="font-size:12px;color:#d9c7ae;">${escapeHtml(item.category || '')} ${item.year || ''}</span>
+      </div>
+    `;
+    card.addEventListener('click', () => {
+      if (onSelect) onSelect(item, index);
+    });
+    track.appendChild(card);
+    refs.push(card);
+  });
+
+  function setIndex(index) {
+    refs.forEach((card, idx) => {
+      const active = idx === index;
+      card.style.transform = active ? 'scale(1)' : 'scale(0.92)';
+      card.style.opacity = active ? '1' : '0.78';
+      card.style.boxShadow = active ? '0 18px 45px rgba(0,0,0,0.45)' : 'none';
+    });
+    refs.forEach(card => card.classList.remove('carousel-fallback-card--active'));
+    refs[index]?.classList.add('carousel-fallback-card--active');
+    if (track.clientWidth) {
+      const cardRect = refs[index]?.getBoundingClientRect();
+      // El contenedor no hace scroll nativo, centra el activo con translate.
+      const cardLeft = refs[index]?.offsetLeft || 0;
+      const offset = centerOfContainer(container.clientWidth, card.offsetWidth) - cardLeft;
+      track.style.transform = `translateX(${offset}px)`;
+    }
+    if (onChange) onChange(index, items[index]);
+  }
+
+  let index = 0;
+  setIndex(index);
+  let timer = setInterval(() => {
+    index = (index + 1) % items.length;
+    setIndex(index);
+  }, 1500);
+
+  return {
+    destroy() {
+      clearInterval(timer);
+      track.remove();
+    },
+    step(delta = 1) {
+      index = (index + (delta > 0 ? 1 : items.length - 1)) % items.length;
+      setIndex(index);
+    }
+  };
+}
+
+function itemTitle(item) {
+  return item?.alt || item?.title || 'Pelicula destacada';
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function centerOfContainer(containerWidth, cardWidth) {
+  return Math.max(0, (containerWidth - cardWidth) / 2);
+}
+
+
 export function initFlexCarousel(canvasOrContainer, items = [], onSelect = null, options = {}) {
   if (!canvasOrContainer || !items || !items.length) return null;
 
@@ -297,7 +340,7 @@ export function initFlexCarousel(canvasOrContainer, items = [], onSelect = null,
 
   const gl = renderer.gl;
   if (!renderer.isWebgl2 || !gl) {
-    console.error('[FlexCarousel] WebGL 2 no soportado por este navegador/dispositivo.');
+    console.warn('[FlexCarousel] WebGL 2 no disponible.');
     return null;
   }
 
@@ -519,7 +562,6 @@ export function initFlexCarousel(canvasOrContainer, items = [], onSelect = null,
     };
 
     const image = new Image();
-    image.crossOrigin = 'anonymous';
     image.decoding = 'async';
 
     image.onload = () => {
@@ -1309,6 +1351,8 @@ export function initFlexCarousel(canvasOrContainer, items = [], onSelect = null,
 
   resize();
   setItems(items);
+  visible = true;
+  start();
 
   return {
     destroy() {

@@ -5,7 +5,7 @@
 
 import { initFluxLines } from './flux-lines.js';
 import { initElasticMesh } from './elastic-mesh.js';
-import { initFlexCarousel } from './flex-carousel.js?v=v4';
+import { initFlexCarousel } from './flexcarousel-dom.js';
 import { initChromaGrid } from './chroma-grid.js';
 import { initTargetCursor } from './target-cursor.js';
 import { initTrailerStage } from './trailer-stage.js';
@@ -13,13 +13,18 @@ import { showToast } from './toast.js';
 import { initBlobCursor } from './blob-cursor.js';
 import { initOptionWheel } from './option-wheel.js';
 
+// Instancia del carrusel: el modal la pausa y la reanuda al cerrarse.
+let carouselInstance = null;
+
+// Segundos que cada portada permanece en el carrusel antes de pasar a la siguiente.
+const CAROUSEL_INTERVAL_SECONDS = 1.5;
+
 function boot() {
   initBackgroundEffects();
   initSidebar();
   initModalPlayer();
   initCatalogFilters();
   initCarousel();
-  console.error('CAROUSEL_INIT_DONE');
 }
 
 if (document.readyState === 'loading') {
@@ -38,7 +43,6 @@ function initBackgroundEffects() {
       initFluxLines(fluxCanvas);
     }
   } catch (err) {
-    console.warn('[CinePlus] No se pudo inicializar FluxLines:', err);
   }
 
   try {
@@ -47,7 +51,6 @@ function initBackgroundEffects() {
       initBlobCursor(blobCanvas, { size: 150, color: '#d9c7ae', lag: 0.2, trail: 4 });
     }
   } catch (err) {
-    console.warn('[CinePlus] No se pudo inicializar BlobCursor:', err);
   }
 
   try {
@@ -56,7 +59,6 @@ function initBackgroundEffects() {
       initElasticMesh(heroCanvas);
     }
   } catch (err) {
-    console.warn('[CinePlus] No se pudo inicializar ElasticMesh:', err);
   }
 
   try {
@@ -65,13 +67,11 @@ function initBackgroundEffects() {
       initChromaGrid(grid);
     }
   } catch (err) {
-    console.warn('[CinePlus] No se pudo inicializar ChromaGrid:', err);
   }
 
   try {
     initTargetCursor('.cursor-target, .chroma-card, .btn, .filter-chip, .rail-cat-item');
   } catch (err) {
-    console.warn('[CinePlus] No se pudo inicializar TargetCursor:', err);
   }
 }
 
@@ -262,6 +262,8 @@ function initModalPlayer() {
     if (stageUI) stageUI.reset();
     modal.style.display = 'none';
     document.body.classList.remove('modal-open');
+    // El carrusel se congelaba mientras el modal estaba abierto: al cerrarlo, reanudamos.
+    if (carouselInstance) carouselInstance.resume();
   }
 
   if (closeBtn) {
@@ -318,16 +320,13 @@ function initModalPlayer() {
 }
 
 /* -------------------------------------------------------------
- * 4. Carrusel 3D En Portada
+ * 4. Carrusel de portada
  * ------------------------------------------------------------- */
 function initCarousel() {
-  console.warn('[CinePlus DBG4] initCarousel');
   const container = document.getElementById('carousel-stage');
   const jsonScript = document.getElementById('featured-movies-json');
   if (!container || !jsonScript) return;
 
-  const titleEl = document.getElementById('carousel-title');
-  const subtitleEl = document.getElementById('carousel-subtitle');
   const indexEl = document.getElementById('carousel-current-index');
   const countEl = document.getElementById('carousel-total-count');
 
@@ -335,7 +334,6 @@ function initCarousel() {
   try {
     items = JSON.parse(jsonScript.textContent);
   } catch (err) {
-    console.warn('[CinePlus] Error al parsear JSON del carrusel:', err);
     return;
   }
 
@@ -343,67 +341,57 @@ function initCarousel() {
 
   if (countEl) countEl.textContent = String(items.length).padStart(2, '0');
 
-  function updateCaption(item, idx) {
-    if (!item) return;
-    if (titleEl) titleEl.textContent = item.title || 'Pelicula destacada';
-    if (subtitleEl) {
-      const parts = [item.category, item.year].filter(Boolean);
-      subtitleEl.textContent = parts.length ? parts.join(' - ') : 'Trailer oficial';
-    }
-    if (indexEl) indexEl.textContent = String(idx + 1).padStart(2, '0');
+  function updateCounter(index, item) {
+    if (indexEl) indexEl.textContent = String(index + 1).padStart(2, '0');
   }
 
-  updateCaption(items[0], 0);
+  updateCounter(0, items[0]);
 
-  container.style.height = 'clamp(310px, 33vw, 430px)';
-  container.style.minHeight = '310px';
+  function openMovie(selectedItem) {
+    if (!selectedItem) return;
+    const card = document.querySelector(`.chroma-card[data-movie-id="${selectedItem.id}"]`);
+    if (card) {
+      card.click();
+    } else if (window.__cineplusOpenModal) {
+      window.__cineplusOpenModal({
+        id: selectedItem.id,
+        title: selectedItem.title,
+        description: '',
+        year: selectedItem.year,
+        duration: '',
+        rating: 'TP',
+        categoryName: selectedItem.category,
+        streamUrl: `/api/movies/${selectedItem.id}/stream`,
+        posterUrl: selectedItem.fullPoster || selectedItem.src,
+        featured: true
+      });
+    }
+  }
 
   window.setTimeout(() => {
-    initFlexCarousel(
-      container,
-      items,
-      (selectedItem) => {
-        if (!selectedItem) return;
-        const card = document.querySelector(`.chroma-card[data-movie-id="${selectedItem.id}"]`);
-        if (card) {
-          card.click();
-        } else if (window.__cineplusOpenModal) {
-          window.__cineplusOpenModal({
-            id: selectedItem.id,
-            title: selectedItem.title,
-            description: '',
-            year: selectedItem.year,
-            duration: '',
-            rating: 'TP',
-            categoryName: selectedItem.category,
-            streamUrl: `/api/movies/${selectedItem.id}/stream`,
-            posterUrl: selectedItem.fullPoster || selectedItem.src,
-            featured: true
-          });
-        }
-      },
-      {
-        preset: 'liquid',
-        intro: 'rise',
-        cardHeight: 0.54,
-        gap: 16,
-        radius: 16,
-        squeeze: 0.2,
-        focusOnClick: true,
-        captions: true,
-        captureWheel: true,
+    try {
+      carouselInstance = initFlexCarousel(container, items, openMovie, {
         autoplay: true,
-        interval: 3.8,
-        onChange: (index, item) => {
-          updateCaption(item, index);
-        }
+        interval: CAROUSEL_INTERVAL_SECONDS,
+        onChange: updateCounter
+      });
+
+      const prevBtn = document.querySelector('[data-carousel-prev]');
+      const nextBtn = document.querySelector('[data-carousel-next]');
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => carouselInstance?.prev());
       }
-    );
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => carouselInstance?.next());
+      }
+
+      // Ayuda de depuración, igual que __cineplusOpenModal en la cuadrícula.
+      window.__cineplusCarousel = carouselInstance;
+    } catch (err) {
+      console.warn('[CinePlus] No se pudo iniciar el carrusel:', err);
+    }
   }, 120);
-
-} // fin initCarousel
-
-  // Vinculacion de clic en las tarjetas de la cuadr (la cuadricula se enlaza mas abajo)
+}
 
 /* -------------------------------------------------------------
  * 5. Búsqueda y Filtros de Categoría

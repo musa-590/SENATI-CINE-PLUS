@@ -21,6 +21,9 @@ build/
 checkbal.py
 repair.py
 repair2.py
+find*.py
+fix*.py
+patch*.py
 marckdown/
 deploy/
 

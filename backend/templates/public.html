@@ -148,40 +148,52 @@
         </div>
       </section>
 
-      <!-- Carrusel 3D En Portada -->
+      <!-- Carrusel de portada -->
       {% if featured_movies %}
       <section class="carousel-panel" id="portada" aria-labelledby="portada-title">
         <div class="panel-head">
           <div class="panel-head-left">
             {{ icon("spark", size=13) }}
             <h2 class="panel-title" id="portada-title">Selección de la casa</h2>
-          </div>
-          <span class="panel-hint">
-            {{ icon("drag", size=14) }}
-            Arrastra · haz clic para abrir
-          </span>
-        </div>
-        <div class="carousel-stage" id="carousel-stage" tabindex="0" role="region" aria-label="Carrusel de películas en portada">
-          <canvas id="carousel-canvas" class="carousel-canvas" aria-hidden="true"></canvas>
-          <div class="flex-carousel__caption" id="carousel-caption" aria-live="polite">
-            <div class="flex-carousel__title">
-              <strong id="carousel-title">Película destacada</strong>
-              <span class="flex-carousel__subtitle" id="carousel-subtitle">Tráiler oficial</span>
-            </div>
-            <div class="flex-carousel__count" id="carousel-count">
+            <span class="carousel-counter" id="carousel-count" aria-hidden="true">
               <span id="carousel-current-index">01</span>
-              <span class="flex-carousel__slash">/</span>
+              <span class="carousel-counter__slash">/</span>
               <span id="carousel-total-count">{{ "%02d" % featured_movies|length }}</span>
+            </span>
+          </div>
+          <div class="panel-head-right">
+            <span class="panel-hint">
+              {{ icon("drag", size=14) }}
+              Arrastra o usa las flechas · clic para abrir
+            </span>
+            <div class="carousel-nav" role="group" aria-label="Navegación del carrusel">
+              <button type="button" class="carousel-nav__btn" data-carousel-prev aria-label="Película anterior">
+                {{ icon("arrow-left", size=15) }}
+              </button>
+              <button type="button" class="carousel-nav__btn" data-carousel-next aria-label="Película siguiente">
+                {{ icon("arrow-right", size=15) }}
+              </button>
             </div>
           </div>
-          <!-- Datos JSON embebidos para inicialización rápida del carrusel OGL -->
+        </div>
+
+        <div
+          class="carousel-stage"
+          id="carousel-stage"
+          tabindex="0"
+          role="region"
+          aria-roledescription="carrusel"
+          aria-label="Películas en portada"
+        >
+          <p class="sr-only" id="carousel-live" aria-live="polite" aria-atomic="true"></p>
+          <!-- Datos JSON embebidos para inicialización rápida del carrusel -->
           <script id="featured-movies-json" type="application/json">
             [
               {% for movie in featured_movies %}
               {
                 "id": {{ movie.id }},
                 "title": {{ movie.title|tojson }},
-                "src": "/api/movies/{{ movie.id }}/poster?v=4",
+                "src": "/api/movies/{{ movie.id }}/poster?thumb=1&v=4",
                 "fullPoster": "/api/movies/{{ movie.id }}/poster?v=4",
                 "category": {{ (movie.category.name if movie.category else "")|tojson }},
                 "year": {{ (movie.year or "")|tojson }}
@@ -314,5 +326,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script type="module" src="{{ url_for('static', filename='js/app.js') }}?v=v4"></script>
+<script type="module" src="{{ url_for('static', filename='js/app.js', v=7) }}"></script>
 {% endblock %}
